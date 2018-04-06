@@ -24,6 +24,8 @@ sample_t sampleLast;
 #undef I2C_DISABLE
 #define I2C_DISABLE
 
+void printMainMenu(void);
+
 void setup() {
 	// global chip configuration
 
@@ -70,6 +72,7 @@ INIT_FAIL:
 
 	// take a measurement from each device to prime the pumps
 	sampleAcquire(&sampleLast);
+	printMainMenu();
 }
 
 // start and get are staggered with MPU reads
@@ -105,16 +108,21 @@ void samplePrint(sample_t *sample) {
 	Serial.println(" ms ago)");
 	Serial.print("Gyro : ");
 	Serial.print(sample->gyro.XAxis, 1);
+	Serial.print("\t");
 	Serial.print(sample->gyro.YAxis, 1);
+	Serial.print("\t");
 	Serial.println(sample->gyro.ZAxis, 1);
 	Serial.print("Accel: ");
 	Serial.print(sample->accel.XAxis, 1);
+	Serial.print("\t");
 	Serial.print(sample->accel.YAxis, 1);
+	Serial.print("\t");
 	Serial.println(sample->accel.ZAxis, 1);
 	Serial.print("Temperature: ");
 	Serial.print(sample->temperature, 0);
 	Serial.print("  -  Pressure: ");
-	Serial.println(sample->pressure, 1);
+	Serial.print(sample->pressure, 1);
+	Serial.println("\n");
 }
 
 void sampleDump(sample_t *sample) {
@@ -139,9 +147,16 @@ void sampleDump(sample_t *sample) {
 }
 
 void printMenuHeader(char *string) {
-	Serial.print("-------- ======== [ ");
+	Serial.print("\n-------- ======== [ ");
 	Serial.print(string);
 	Serial.println(" ] ======== --------");
+}
+
+void printMainMenu(void) {
+	printMenuHeader("Main Menu");
+	Serial.print("c\tConfiguration menu\ns\tStreaming mode\nf\tFree running capture mode\nd\tDownload most recent capture data\nr\tReboot\nh\tHelp (this menu)\n");
+	samplePrint(&sampleLast);
+	Serial.println("");
 }
 
 void loop() {
@@ -177,11 +192,8 @@ void loop() {
 					cmdState = REBOOT;
 				case 'h':
 				default:
-					printMenuHeader("Main Menu");
-					Serial.print("c\tConfiguration menu\ns\tStreaming mode\nf\tFree running capture mode\nd\tDownload most recent capture data\nr\tReboot\nh\tHelp (this menu)\n");
-					samplePrint(&sampleLast);
+					printMainMenu();
 					return;
-					break;
 			};
 			break;
 		case CONFIG:
