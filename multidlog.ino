@@ -21,6 +21,9 @@ typedef struct {
 
 sample_t sampleLast;
 
+#undef I2C_DISABLE
+#define I2C_DISABLE
+
 void setup() {
 	// global chip configuration
 
@@ -36,44 +39,62 @@ void setup() {
 		Serial.println("ok");
 	} else {
 INIT_FAIL:
+#ifndef I2C_DISABLE
 		// show a message and stop until user reboots with a key press
 		Serial.println("FAIL");
 		Serial.println("\nPress any key to reboot.\n");
 		while (Serial.read() == -1);
 		Watchdog.enable(1000);
 		while(1);
+#else
+		Serial.println("i2c disabled");
+#endif
 	}
 	// MPU6050
 	Serial.print("MPU6050 ... ");
 	if (mpu.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G)) {
 		Serial.println("ok");
 	} else
+#ifndef I2C_DISABLE
 		goto INIT_FAIL;
+#else
+		Serial.println("i2c disabled");
+#endif
 	// configuration
+#ifndef I2C_DISABLE
 	mpu.setAccelPowerOnDelay(MPU6050_DELAY_3MS);
 	mpu.setIntFreeFallEnabled(false);  
 	mpu.setIntZeroMotionEnabled(false);
 	mpu.setIntMotionEnabled(false);
+#endif
 
 	// take a measurement from each device to prime the pumps
 	sampleAcquire(&sampleLast);
 }
 
+// start and get are staggered with MPU reads
 void sampleAcquire(sample_t *sample) {
+#ifndef I2C_DISABLE
 	double tmpT, tmpP;
 	unsigned long tmpTime;
+
 	int wait = bmp.startTemperature();
 	sample->time = millis();
 	sample->gyro = mpu.readNormalizeGyro();
-	sample->accel = mpu.readNormalizeAccel();
 	while (millis() - sample->time < wait);
 	bmp.getTemperature(tmpT);
 	sample->temperature = (float)tmpT;
-	tmpTime = millis();
+
 	wait = bmp.startPressure(0);
+	tmpTime = millis();
+	sample->accel = mpu.readNormalizeAccel();
 	while (millis() - tmpTime < wait);
 	bmp.getPressure(tmpP, tmpT);
 	sample->pressure = (float)tmpP;
+#else
+	memset(sample, 0, sizeof(sample_t));
+	sample->time = millis();
+#endif
 }
 
 void samplePrint(sample_t *sample) {
@@ -129,9 +150,10 @@ void loop() {
 	uint16_t samples = 0;
 	unsigned long samples_start_time = 0;
 
+	//Serial.println(".");
 	inputCh = Serial.read();
 	switch (cmdState) {
-		MAIN:
+		case MAIN:
 			switch (inputCh) {
 				case -1:	// no data
 					break;
@@ -151,6 +173,8 @@ void loop() {
 					cmdState = DOWNLOAD;
 					Serial.println("Entering data download mode.");
 					return;
+				case 'r':
+					cmdState = REBOOT;
 				case 'h':
 				default:
 					printMenuHeader("Main Menu");
@@ -160,13 +184,13 @@ void loop() {
 					break;
 			};
 			break;
-		CONFIG:
+		case CONFIG:
 			printMenuHeader("Config Menu");
 			Serial.println("Not yet implemented.");
 			cmdState = MAIN;
 			break;
-		STREAMING:
-		FREE:
+		case STREAMING:
+		case FREERUNNING:
 			// take continued samples
 			sampleAcquire(&sampleLast);
 			samples++;
@@ -191,11 +215,11 @@ void loop() {
 				samples_start_time = 0;
 			}
 			break;
-		DOWNLOAD:
+		case DOWNLOAD:
 			// read eeprom and send it
 			cmdState = MAIN;
 			break;
-		REBOOT:
+		case REBOOT:
 			// soft reset this device
 			Watchdog.enable(1000);
 			while(1);
