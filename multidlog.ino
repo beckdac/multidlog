@@ -6,7 +6,11 @@
 SFE_BMP180 bmp;
 MPU6050 mpu;
 
-typedef enum { MAIN, CONFIG, STREAMING, FREERUNNING, DOWNLOAD, REBOOT, HELP } commandState_t;
+typedef enum { 
+	MAIN, CONFIG, STREAMING, FREERUNNING, 
+	DOWNLOAD, REBOOT, HELP 
+} commandState_t;
+
 typedef struct {
 	unsigned long time;
 	Vector gyro;
@@ -113,6 +117,12 @@ void sampleDump(sample_t *sample) {
 	Serial.println(sample->pressure, 1);
 }
 
+void printMenuHeader(char *string) {
+	Serial.print("-------- ======== [ ");
+	Serial.print(string);
+	Serial.println(" ] ======== --------");
+}
+
 void loop() {
 	commandState_t cmdState = MAIN;
 	int inputCh = 0;
@@ -143,13 +153,15 @@ void loop() {
 					return;
 				case 'h':
 				default:
-					Serial.print("-------- ======== [ Main menu ] ======== --------\nc\tConfiguration menu\ns\tStreaming mode\nf\tFree running capture mode\nd\tDownload most recent capture data\nr\tReboot\nh\tHelp (this menu)\n");
+					printMenuHeader("Main Menu");
+					Serial.print("c\tConfiguration menu\ns\tStreaming mode\nf\tFree running capture mode\nd\tDownload most recent capture data\nr\tReboot\nh\tHelp (this menu)\n");
 					samplePrint(&sampleLast);
 					return;
 					break;
 			};
 			break;
 		CONFIG:
+			printMenuHeader("Config Menu");
 			Serial.println("Not yet implemented.");
 			cmdState = MAIN;
 			break;
