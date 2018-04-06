@@ -165,6 +165,8 @@ void loop() {
 	uint16_t samples = 0;
 	unsigned long samples_start_time = 0;
 
+  while(1) {
+
 	//Serial.println(".");
 	inputCh = Serial.read();
 	switch (cmdState) {
@@ -175,25 +177,26 @@ void loop() {
 				case 'c':
 					cmdState = CONFIG;
 					Serial.println("Entering configuration mode.");
-					return;
+					continue;
 				case 's':
 					cmdState = STREAMING;
 					Serial.println("Entering streaming mode. Press any key to stop.");
-					return;
+					continue;
 				case 'f':
 					cmdState = FREERUNNING;
 					Serial.println("Entering free running capture mode.");
-					return;
+					continue;
 				case 'd':
 					cmdState = DOWNLOAD;
 					Serial.println("Entering data download mode.");
-					return;
+					continue;
 				case 'r':
 					cmdState = REBOOT;
+					continue;
 				case 'h':
 				default:
 					printMainMenu();
-					return;
+					continue;
 			};
 			break;
 		case CONFIG:
@@ -210,11 +213,14 @@ void loop() {
 				// print reading
 				sampleDump(&sampleLast);
 				// if received a key then stop
-				if (inputCh != -1)
+				if (inputCh != -1) {
+					Serial.println("Leaving streaming mode.");
 					cmdState = MAIN;
+				}
 			} else {
 				// save reading
 				// if buffer full, go back to main and report out
+				Serial.println("Leaving free running mode.");
 					cmdState = MAIN;
 			}
 			if (cmdState == MAIN) {
@@ -222,17 +228,19 @@ void loop() {
 				Serial.print(samples);
 				Serial.print(" samples in ");
 				Serial.print(millis() - samples_start_time);
-				Serial.print(" d milliseconds.\n\nReturning to Main Menu. 'H' for help.\n");
+				Serial.print(" milliseconds.\n\nReturning to Main Menu. 'h' for help.\n");
 				samples = 0;
 				samples_start_time = 0;
 			}
 			break;
 		case DOWNLOAD:
 			// read eeprom and send it
+			Serial.print("Leaving data download mode.");
 			cmdState = MAIN;
 			break;
 		case REBOOT:
 			// soft reset this device
+			Serial.println("Rebooting via watch dog in 1 second.");
 			Watchdog.enable(1000);
 			while(1);
 			break;
@@ -240,4 +248,5 @@ void loop() {
 			cmdState = MAIN;
 			break;
 	};
+  }
 }
