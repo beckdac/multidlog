@@ -97,6 +97,14 @@ void sampleAcquire(sample_t *sample) {
 #else
 	memset(sample, 0, sizeof(sample_t));
 	sample->time = millis();
+	sample->gyro.XAxis = (float)(sample->time % 2) * .8;
+	sample->gyro.YAxis = (float)(sample->time % 3) * .8;
+	sample->gyro.ZAxis = (float)(sample->time % 4) * .8;
+	sample->accel.XAxis = (float)(sample->time % 5) * .8;
+	sample->accel.YAxis = (float)(sample->time % 6) * .8;
+	sample->accel.ZAxis = (float)(sample->time % 7) * .8;
+	sample->temperature = (float)(sample->time % 300) * .8;
+	sample->pressure = (float)(sample->time % 1000) * .8;
 #endif
 }
 
@@ -133,7 +141,7 @@ void sampleDump(sample_t *sample) {
 	Serial.print("\t");
 	Serial.print(sample->gyro.YAxis, 1);
 	Serial.print("\t");
-	Serial.println(sample->gyro.ZAxis, 1);
+	Serial.print(sample->gyro.ZAxis, 1);
 	Serial.print("\t");
 	Serial.print(sample->accel.XAxis, 1);
 	Serial.print("\t");
